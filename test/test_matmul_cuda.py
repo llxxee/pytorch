@@ -458,6 +458,7 @@ class TestMatmulCuda(TestCase):
     def test_mm_bmm_dtype_overload(self, input_dtype, M, N, K, batch_size, backend):
         device = "cuda"
         dtype = input_dtype
+        prev_backend = torch.backends.cuda.preferred_blas_library()
         torch.backends.cuda.preferred_blas_library(backend)
 
         def create_inputs(B=None):
@@ -501,6 +502,7 @@ class TestMatmulCuda(TestCase):
                 self.assertEqual(out.dtype, output_dtype)
 
                 torch.testing.assert_close(out, baseline, atol=1e-3, rtol=1e-3)
+        torch.backends.cuda.preferred_blas_library(prev_backend)
 
 
     @onlyCUDA
@@ -514,6 +516,7 @@ class TestMatmulCuda(TestCase):
     def test_addmm_baddmm_dtype_overload(self, input_dtype, M, N, K, batch_size, backend):
         device = "cuda"
         dtype = input_dtype
+        prev_backend = torch.backends.cuda.preferred_blas_library()
         torch.backends.cuda.preferred_blas_library(backend)
 
         def create_inputs(B=None):
@@ -559,6 +562,7 @@ class TestMatmulCuda(TestCase):
 
                 self.assertEqual(out.dtype, output_dtype)
                 torch.testing.assert_close(out, baseline, atol=1e-3, rtol=1e-3)
+        torch.backends.cuda.preferred_blas_library(prev_backend)
 
 
     @onlyCUDA
@@ -569,6 +573,7 @@ class TestMatmulCuda(TestCase):
         M, N, K = 32, 32, 32
         device = "cuda"
         dtype = torch.float16
+        prev_backend = torch.backends.cuda.preferred_blas_library()
         torch.backends.cuda.preferred_blas_library(backend)
 
         orig_fp16_accum = torch.backends.cuda.matmul.allow_fp16_accumulation
@@ -598,6 +603,7 @@ class TestMatmulCuda(TestCase):
             torch.mm(a, b, out_dtype=torch.float32)
 
         torch.backends.cuda.matmul.allow_fp16_accumulation = orig_fp16_accum
+        torch.backends.cuda.preferred_blas_library(prev_backend)
 
 f8_msg = "FP8 is only supported on H100+, SM 8.9 and MI300+ devices"
 mx_skip_msg = "MX gemm is only supported on CUDA capability 10.0+"
