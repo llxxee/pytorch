@@ -1959,6 +1959,28 @@ class DICT_CONTAINS : public LeafGuard {
   py::object _key;
 };
 
+// Check that set contains an item.
+class SET_CONTAINS : public LeafGuard {
+ public:
+  SET_CONTAINS(bool contains, py::object item, py::object verbose_code_parts)
+      : LeafGuard(std::move(verbose_code_parts)),
+        _contains(contains ? 1 : 0),
+        _item(std::move(item)) {}
+
+  bool check_nopybind(PyObject* value) override { // borrowed ref
+    int result = PySet_Check(value) && PySet_Contains(value, _item.ptr());
+    if (result == -1) {
+      PyErr_Clear();
+      return false;
+    }
+    return result == _contains;
+  }
+
+ private:
+  int _contains;
+  py::object _item;
+};
+
 /**
  * Relational guards compare more than one value. We implement Relational
  * guards by capturing some state in the guard object. For example for tensor
@@ -5517,6 +5539,10 @@ PyObject* torch_c_dynamo_guards_init() {
       py_m, "DICT_CONTAINS")
       .def(py::init<bool, py::object, py::list>())
       .def("__call__", &DICT_CONTAINS::check);
+  py::class_<SET_CONTAINS, LeafGuard, std::shared_ptr<SET_CONTAINS>>(
+      py_m, "SET_CONTAINS")
+      .def(py::init<bool, py::object, py::list>())
+      .def("__call__", &SET_CONTAINS::check);
   py::class_<DYNAMIC_INDICES, LeafGuard, std::shared_ptr<DYNAMIC_INDICES>>(
       py_m, "DYNAMIC_INDICES")
       .def(py::init<py::set, py::list>())
@@ -5853,6 +5879,15 @@ PyObject* torch_c_dynamo_guards_init() {
              py::object verbose_code_parts) -> void {
             self.add_leaf_guard(std::make_shared<DICT_CONTAINS>(
                 contains, std::move(key), std::move(verbose_code_parts)));
+          })
+      .def(
+          "add_set_contains_guard",
+          [](GuardManager& self,
+             bool contains,
+             py::object item,
+             py::object verbose_code_parts) -> void {
+            self.add_leaf_guard(std::make_shared<SET_CONTAINS>(
+                contains, std::move(item), std::move(verbose_code_parts)));
           })
       .def(
           "add_dynamic_indices_guard",
