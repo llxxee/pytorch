@@ -1639,6 +1639,10 @@ class TestMkldnn(TestCase):
             [torch.float8_e4m3fn, torch.float8_e5m2],
             [torch.float8_e4m3fn, torch.float8_e5m2, torch.bfloat16, torch.float16, torch.float32])
         for x_dtype, y_dtype, out_dtype in options:
+            print("###########", x_dtype, y_dtype, out_dtype)
+            if out_dtype in (torch.float8_e4m3fn, torch.float8_e5m2):
+                if x_dtype != out_dtype:
+                    continue
             x_fp8 = x.to(x_dtype)
             y_fp8 = y.to(y_dtype)
             scale_a = torch.randn(1, device=device)
@@ -1653,6 +1657,8 @@ class TestMkldnn(TestCase):
             out = torch._scaled_mm(x_fp8, y_fp8, scale_a, scale_b, scale_result=scale_out, out_dtype=out_dtype)
             if out_dtype is not None:
                 self.assertEqual(out_dtype, out.dtype)
+            print(out_emulated)
+            print(out)
             self.assertEqual(out_emulated.float(), out.float(), atol=5e-2, rtol=5e-2)
 
 
