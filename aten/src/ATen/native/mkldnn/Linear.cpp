@@ -509,7 +509,9 @@ mkldnn_scaled_mm(const Tensor& mat1, const Tensor& mat2,
   float input_scale = scale_a.item<float>();
   float weight_scale = scale_b.item<float>();
   float output_scale = float(1.0);
-  if (scale_result.has_value()) {
+  if (scale_result.has_value() &&
+      (*out_dtype == ScalarType::Float8_e4m3fn ||
+       *out_dtype == ScalarType::Float8_e5m2)) {
     output_scale = scale_result.value().item<float>();
   }
   auto src = at::native::itensor_view_from_dense(mat1_c);
@@ -558,9 +560,7 @@ mkldnn_scaled_mm(const Tensor& mat1, const Tensor& mat2,
   if (weight_scale != 1.0f) {
     op_attr.set_scales_mask(DNNL_ARG_WEIGHTS, 0);
   }
-  if ((*out_dtype == ScalarType::Float8_e4m3fn ||
-       *out_dtype == ScalarType::Float8_e5m2) &&
-      output_scale != 1.0f) {
+  if (output_scale != 1.0f) {
     op_attr.set_scales_mask(DNNL_ARG_DST, 0);
   }
 
